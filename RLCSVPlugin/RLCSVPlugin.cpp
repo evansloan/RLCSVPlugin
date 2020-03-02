@@ -18,7 +18,8 @@ void RLCSVPlugin::onLoad() {
 
 
 void RLCSVPlugin::onUnload() {
-
+    gameWrapper->UnhookEvent("Function GameEvent_TA.Countdown.BeginState");
+    gameWrapper->UnhookEvent("Function TAGame.GameEvent_Soccar_TA.Destroyed");
 }
 
 void RLCSVPlugin::startGame(std::string eventName) {
