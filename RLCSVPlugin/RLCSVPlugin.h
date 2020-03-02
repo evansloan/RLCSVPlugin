@@ -5,19 +5,15 @@
 
 #include <fstream>
 
-typedef struct {
-    float initialMMR, currentMMR;
-    int tier, div;
-} StatsStruct;
-
 class RLCSVPlugin : public BakkesMod::Plugin::BakkesModPlugin {
 private:
     int teamNumber;
-    int currentPlaylist;
-    std::map<int, StatsStruct> stats;
+    int playlist;
+    float initialMMR;
+    float newMMR;
     SteamID mySteamID;
 
-    void writeCSV(std::ofstream& f, ArrayWrapper<PriWrapper> players, int team);
+    void writePlayersCSV(std::ofstream& f, ArrayWrapper<PriWrapper> players, int team);
     void logStatusToConsole(std::string oldValue, CVarWrapper cvar);
 
 public:

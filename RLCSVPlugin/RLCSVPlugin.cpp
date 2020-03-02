@@ -22,8 +22,6 @@ void RLCSVPlugin::onUnload() {
 }
 
 void RLCSVPlugin::StartGame(std::string eventName) {
-    std::stringstream ss;
-
     if (!gameWrapper->IsInOnlineGame() || gameWrapper->IsInReplay()) return;
 
     mySteamID.ID = gameWrapper->GetSteamID();
@@ -33,7 +31,6 @@ void RLCSVPlugin::StartGame(std::string eventName) {
 
     if (!sw.IsNull() && sw.IsOnlineMultiplayer()) {
         CarWrapper me = gameWrapper->GetLocalCar();
-        std::stringstream ss;
 
         if (!me.IsNull()) {
             teamNumber = me.GetTeamNum2();
@@ -42,12 +39,8 @@ void RLCSVPlugin::StartGame(std::string eventName) {
         }
 
         MMRWrapper mw = gameWrapper->GetMMRWrapper();
-        currentPlaylist = mw.GetCurrentPlaylist();
-        float mmr = mw.GetPlayerMMR(mySteamID, currentPlaylist);
-
-        if (stats.find(currentPlaylist) == stats.end()) {
-            stats[currentPlaylist] = StatsStruct{ mmr, mmr, 0, 0 };
-        }
+        playlist = mw.GetCurrentPlaylist();
+        initialMMR = mw.GetPlayerMMR(mySteamID, playlist);
     }
 }
 
@@ -63,10 +56,13 @@ void RLCSVPlugin::EndGame(std::string eventName) {
 
     if (!sw.IsNull()) {
         ArrayWrapper<TeamWrapper> teams = sw.GetTeams();
-        std::string guid = sw.GetMatchGUID();
         std::stringstream ss;
 
         if (teams.Count() == 2) {
+            std::string guid = sw.GetMatchGUID();
+            MMRWrapper mw = gameWrapper->GetMMRWrapper();
+            newMMR = mw.GetPlayerMMR(mySteamID, playlist);
+
             int score0 = teams.Get(0).GetScore();
             int score1 = teams.Get(1).GetScore();
 
@@ -82,13 +78,16 @@ void RLCSVPlugin::EndGame(std::string eventName) {
             ArrayWrapper<PriWrapper> players0 = teams.Get(0).GetMembers();
             ArrayWrapper<PriWrapper> players1 = teams.Get(1).GetMembers();
 
-            writeCSV(f, players0, 0);
-            writeCSV(f, players1, 1);
+            f << "Initial MMR,New MMR\n";
+            f << std::to_string(initialMMR) + "," + std::to_string(newMMR) + "\n";
+
+            writePlayersCSV(f, players0, 0);
+            writePlayersCSV(f, players1, 1);
         }
     }
 }
 
-void RLCSVPlugin::writeCSV(std::ofstream& f, ArrayWrapper<PriWrapper> players, int team) {
+void RLCSVPlugin::writePlayersCSV(std::ofstream& f, ArrayWrapper<PriWrapper> players, int team) {
     f << "Team: " + std::to_string(team) + "\n";
     f << "Player,Score,Goals,Assists,Saves,Shots\n";
 
