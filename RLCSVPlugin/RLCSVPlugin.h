@@ -24,7 +24,7 @@ class RLCSVPlugin : public BakkesMod::Plugin::BakkesModPlugin {
 private:
     void writeCSV();
     std::map<std::string, Stats> getPlayerStats(ArrayWrapper<TeamWrapper> teams, ArrayWrapper<PriWrapper> players);
-    float getPlayerMMR(PriWrapper player);
+    float getPlayerMMR(MMRWrapper mw, PriWrapper player);
     void logCVarChange(std::string oldValue, CVarWrapper cvar);
 
 public:

@@ -2,12 +2,14 @@
 
 BAKKESMOD_PLUGIN(RLCSVPlugin, "RLCSV Plugin", "0.1", 0)
 
+const std::string saveLocation = "data/RLCSV";
+
 void RLCSVPlugin::onLoad() {
     std::stringstream ss;
     ss << exports.pluginName << " version: " << exports.pluginVersion;
     cvarManager->log(ss.str());
 
-    cvarManager->registerCvar("cl_rlcsv_csv_directory", "bakkesmod/data/csv/", "Directory to write CSV files to (use forward slash '/' as separator in path", true, false, (0.0F), false, (0.0F), true);
+    cvarManager->registerCvar("cl_rlcsv_csv_directory", "bakkesmod/" + saveLocation + "/", "Directory to write CSV files to (use forward slash '/' as separator in path", true, false, (0.0F), false, (0.0F), true);
     cvarManager->getCvar("cl_rlcsv_csv_directory").addOnValueChanged(std::bind(&RLCSVPlugin::logCVarChange, this, std::placeholders::_1, std::placeholders::_2));
 
     gameWrapper->HookEvent("Function TAGame.GameEvent_Soccar_TA.OnMatchEnded", std::bind(&RLCSVPlugin::onMatchEnded, this, std::placeholders::_1));
@@ -79,8 +81,9 @@ void RLCSVPlugin::writeCSV() {
 }
 
 std::map<std::string, Stats> RLCSVPlugin::getPlayerStats(ArrayWrapper<TeamWrapper> teams, ArrayWrapper<PriWrapper> players) {
-    cvarManager->log("Getting player stats: " + std::to_string(players.Count()));
+    cvarManager->log("Getting player stats");
 
+    MMRWrapper mw = gameWrapper->GetMMRWrapper();
     std::map<std::string, Stats> playerStats;
 
     for (int i = 0; i < players.Count(); i++) {
@@ -94,15 +97,14 @@ std::map<std::string, Stats> RLCSVPlugin::getPlayerStats(ArrayWrapper<TeamWrappe
         int saves = player.GetMatchSaves();
         int shots = player.GetMatchShots();
         int teamScore = teams.Get(team).GetScore();
-        float mmr = getPlayerMMR(player);
+        float mmr = getPlayerMMR(mw, player);
 
         playerStats[playerID] = Stats{ team, name, score, goals, assists, saves, shots, teamScore, mmr };
     }
     return playerStats;
 }
 
-float RLCSVPlugin::getPlayerMMR(PriWrapper player) {
-    MMRWrapper mw = gameWrapper->GetMMRWrapper();
+float RLCSVPlugin::getPlayerMMR(MMRWrapper mw, PriWrapper player) {
     int playlist = mw.GetCurrentPlaylist();
     SteamID playerID = player.GetUniqueId();
     return mw.GetPlayerMMR(playerID, playlist);
