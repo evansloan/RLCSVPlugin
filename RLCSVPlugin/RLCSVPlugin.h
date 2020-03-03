@@ -3,22 +3,27 @@
 
 #include "bakkesmod/plugin/bakkesmodplugin.h"
 
+#include <ctime>
+#include <map>
 #include <fstream>
+#include <sstream>
 
 typedef struct {
-    float initialMMR;
-    float newMMR;
-} PlayerMMR;
+    int team;
+    std::string name;
+    int score;
+    int goals;
+    int assists;
+    int saves;
+    int shots;
+    int teamScore;
+    float mmr;
+} Stats;
 
 class RLCSVPlugin : public BakkesMod::Plugin::BakkesModPlugin {
 private:
-    int teamNumber;
-    map<unsigned long long, PlayerMMR> playerMMR;
-
-    void writeCSV(std::ofstream& f, ArrayWrapper<TeamWrapper> teams);
-    void writePlayersCSV(std::ofstream& f, ArrayWrapper<PriWrapper> players, int team);
-    void getInitialMMR(ArrayWrapper<TeamWrapper> teams, int team);
-    void getNewMMR(ArrayWrapper<TeamWrapper> teams, int team);
+    void writeCSV();
+    std::map<std::string, Stats> getPlayerStats(ArrayWrapper<TeamWrapper> teams, ArrayWrapper<PriWrapper> players);
     float getPlayerMMR(PriWrapper player);
     void logCVarChange(std::string oldValue, CVarWrapper cvar);
 

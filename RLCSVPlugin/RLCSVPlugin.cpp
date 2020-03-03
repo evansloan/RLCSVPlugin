@@ -1,7 +1,5 @@
 #include "RLCSVPlugin.h"
 
-#include <sstream>
-
 BAKKESMOD_PLUGIN(RLCSVPlugin, "RLCSV Plugin", "0.1", 0)
 
 void RLCSVPlugin::onLoad() {
@@ -9,141 +7,116 @@ void RLCSVPlugin::onLoad() {
     ss << exports.pluginName << " version: " << exports.pluginVersion;
     cvarManager->log(ss.str());
 
-    cvarManager->registerCvar("cl_rlcsv_csv_directory", "bakkesmod/data", "Directory to write CSV files to (use forward slash '/' as separator in path", true, false, (0.0F), false, (0.0F), true);
+    cvarManager->registerCvar("cl_rlcsv_csv_directory", "bakkesmod/data/csv/", "Directory to write CSV files to (use forward slash '/' as separator in path", true, false, (0.0F), false, (0.0F), true);
     cvarManager->getCvar("cl_rlcsv_csv_directory").addOnValueChanged(std::bind(&RLCSVPlugin::logCVarChange, this, std::placeholders::_1, std::placeholders::_2));
 
-    gameWrapper->HookEvent("Function GameEvent_TA.Countdown.BeginState", bind(&RLCSVPlugin::startGame, this, std::placeholders::_1));
-    gameWrapper->HookEvent("Function TAGame.GameEvent_Soccar_TA.OnMatchWinnerSet", bind(&RLCSVPlugin::endGame, this, std::placeholders::_1));
+    gameWrapper->HookEvent("Function GameEvent_TA.Countdown.BeginState", std::bind(&RLCSVPlugin::startGame, this, std::placeholders::_1));
+    gameWrapper->HookEvent("Function TAGame.GameEvent_Soccar_TA.OnMatchEnded", std::bind(&RLCSVPlugin::endGame, this, std::placeholders::_1));
 }
 
 
 void RLCSVPlugin::onUnload() {
     gameWrapper->UnhookEvent("Function GameEvent_TA.Countdown.BeginState");
-    gameWrapper->UnhookEvent("Function TAGame.GameEvent_Soccar_TA.Destroyed");
+    gameWrapper->UnhookEvent("Function TAGame.GameEvent_Soccar_TA.OnMatchEnded");
 }
 
 void RLCSVPlugin::startGame(std::string eventName) {
-    if (!gameWrapper->IsInOnlineGame() || !gameWrapper->IsInGame() || gameWrapper->IsInReplay()) return;
-
-    cvarManager->log("SteamID: " + std::to_string(gameWrapper->GetSteamID.ID));
+    cvarManager->log("Game start");
+    if (!gameWrapper->IsInOnlineGame() || gameWrapper->IsInReplay()) {
+        cvarManager->log("Not a valid online game. CSV recording paused");
+        return;
+    }
 
     ServerWrapper sw = gameWrapper->GetOnlineGame();
-
-    if (!sw.IsNull() && sw.IsOnlineMultiplayer()) {
-        CarWrapper me = gameWrapper->GetLocalCar();
-
-        if (!me.IsNull()) {
-            teamNumber = me.GetTeamNum2();
-        } else {
-            teamNumber = -1;
-        }
-
-        ArrayWrapper<TeamWrapper> teams = sw.GetTeams();
-        getInitialMMR(teams, 0);
-        getInitialMMR(teams, 1);
+    if (sw.IsNull() && !sw.IsOnlineMultiplayer()) {
+        cvarManager->log("ServerWrapper is null or game is not online multiplayer. CSV cannot be recorded");
+        return;
     }
+
+    cvarManager->log("CSV recording enabled");
+
+    ArrayWrapper<PriWrapper> players = sw.GetPRIs();
 }
 
 void RLCSVPlugin::endGame(std::string eventName) {
-    if (teamNumber == -1) {
-        CarWrapper me = gameWrapper->GetLocalCar();
-        if (!me.IsNull()) {
-            teamNumber = me.GetTeamNum2();
-        }
-    }
+    cvarManager->log("Event " + eventName);
 
     ServerWrapper sw = gameWrapper->GetOnlineGame();
+    if (sw.IsNull()) {
+        cvarManager->log("ServerWrapper is null. CSV cannot be recorded");
+        return;
+    }
 
-    if (!sw.IsNull()) {
-        ArrayWrapper<TeamWrapper> teams = sw.GetTeams();
-        getNewMMR(teams, 0);
-        getNewMMR(teams, 1);
+    writeCSV();
+    cvarManager->log("CSV file successfully written");
+}
 
-        if (teams.Count() == 2) {
-            std::string guid = sw.GetMatchGUID();
-            int score0 = teams.Get(0).GetScore();
-            int score1 = teams.Get(1).GetScore();
+void RLCSVPlugin::writeCSV() {
+    ServerWrapper sw = gameWrapper->GetOnlineGame();
+    if (sw.IsNull()) {
+        cvarManager->log("ServerWrapper is null. CSV cannot be recorded");
+        return;
+    }
 
-            std::stringstream ss;
+    std::stringstream ss;
 
-            if ((score0 > score1&& teamNumber == 0) || (score1 > score0&& teamNumber == 1)) {
-                ss << "WIN: " << score0 << "-" << score1 << " - " << guid << ".csv";
-            } else {
-                ss << "LOSS: " << score0 << "-" << score1 << " - " << guid << ".csv";
-            }
+    PriWrapper localPlayer = sw.GetLocalPrimaryPlayer().GetPRI();
+    ArrayWrapper<TeamWrapper> teams = sw.GetTeams();
 
-            std::string filename = cvarManager->getCvar("cl_rlcsv_csv_directory").getStringValue() + ss.str();
-            std::ofstream f(filename, ios::app);
+    int myScore = teams.Get(localPlayer.GetTeamNum()).GetScore();
+    int otherScore;
 
-            ArrayWrapper<PriWrapper> players0 = teams.Get(0).GetMembers();
-            ArrayWrapper<PriWrapper> players1 = teams.Get(1).GetMembers();
+    if (localPlayer.GetTeamNum() == 0) {
+        otherScore = teams.Get(1).GetScore();
+    } else {
+        otherScore = teams.Get(0).GetScore();
+    }
 
-            writeCSV(f, teams);
-        }
+    std::string result = myScore > otherScore ? "WIN" : "LOSS";
+
+    ss << std::time(0) << "_" << result << "_" << myScore << "-" << otherScore << ".csv";
+
+    std::string filename = cvarManager->getCvar("cl_rlcsv_csv_directory").getStringValue() + ss.str();
+    cvarManager->log("CSV file directory: " + filename);
+    std::ofstream f(filename);
+
+    ss.str(std::string());
+
+    f << "Team,Player,Score,Goals,Assists,Saves,Shots,Team Score,MMR\n";
+
+    map<std::string, Stats> playerStats = getPlayerStats(teams, sw.GetPRIs());
+
+    for (auto const &pair : playerStats) {
+        Stats player = pair.second;
+        cvarManager->log("Writing player " + player.name);
+        ss << player.team << "," << player.name << "," << player.score << "," << player.goals << "," << player.assists << ","
+            << player.saves << "," << player.shots << "," << player.teamScore << "," << player.mmr << "\n";
+        f << ss.str();
+        ss.str(std::string());
     }
 }
 
-void RLCSVPlugin::writeCSV(std::ofstream& f, ArrayWrapper<TeamWrapper> teams) {
-    f << "Team,Player,Score,Goals,Assists,Saves,Shots,Demos,Damage,Initial MMR,New MMR\n";
+std::map<std::string, Stats> RLCSVPlugin::getPlayerStats(ArrayWrapper<TeamWrapper> teams, ArrayWrapper<PriWrapper> players) {
+    cvarManager->log("Getting player stats: " + std::to_string(players.Count()));
 
-    ArrayWrapper<PriWrapper> players0 = teams.Get(0).GetMembers();
-    ArrayWrapper<PriWrapper> players1 = teams.Get(1).GetMembers();
-    writePlayersCSV(f, players0, 0);
-    writePlayersCSV(f, players1, 1);
-}
-
-void RLCSVPlugin::writePlayersCSV(std::ofstream& f, ArrayWrapper<PriWrapper> players, int team) {
-    std::stringstream ss;
+    std::map<std::string, Stats> playerStats;
 
     for (int i = 0; i < players.Count(); i++) {
         PriWrapper player = players.Get(i);
-
+        std::string playerID = std::to_string(player.GetUniqueId().ID);
+        int team = player.GetTeamNum2();
         std::string name = player.GetPlayerName().ToString();
-        int score = player.GetScore();
+        int score = player.GetMatchScore();
         int goals = player.GetMatchGoals();
         int assists = player.GetMatchAssists();
         int saves = player.GetMatchSaves();
         int shots = player.GetMatchShots();
-        int demos = player.GetMatchDemolishes();
-        int damage = player.GetMatchBreakoutDamage();
-        float initialMMR = playerMMR[player.GetUniqueId().ID].initialMMR;
-        float newMMR = playerMMR[player.GetUniqueId().ID].newMMR;
+        int teamScore = teams.Get(team).GetScore();
+        float mmr = getPlayerMMR(player);
 
-        ss << team << "," << name << "," << score << "," << goals << "," << assists << "," << saves << "," << shots << "," << demos << "," << damage
-            << "," << initialMMR << "," << newMMR << "\n";
-        f << ss.str();
-        ss.clear();
+        playerStats[playerID] = Stats{ team, name, score, goals, assists, saves, shots, teamScore, mmr };
     }
-    f << "\n";
-}
-
-void RLCSVPlugin::getInitialMMR(ArrayWrapper<TeamWrapper> teams, int team) {
-    ArrayWrapper<PriWrapper> players = teams.Get(team).GetMembers();
-
-    for (int i = 0; i < players.Count(); i++) {
-        SteamID playerID = players.Get(i).GetUniqueId();
-
-        if (playerMMR.find(playerID.ID) == playerMMR.end()) {
-            playerMMR[playerID.ID] = PlayerMMR{ getPlayerMMR(players.Get(i)), 0 };
-        } else {
-            playerMMR[playerID.ID].initialMMR = getPlayerMMR(players.Get(i));
-        }
-    }
-}
-
-void RLCSVPlugin::getNewMMR(ArrayWrapper<TeamWrapper> teams, int team) {
-    ArrayWrapper<PriWrapper> players = teams.Get(team).GetMembers();
-
-    for (int i = 0; i < players.Count(); i++) {
-        SteamID playerID = players.Get(i).GetUniqueId();
-
-        if (playerMMR.find(playerID.ID) == playerMMR.end()) {
-            playerMMR[playerID.ID] = PlayerMMR{ 0, getPlayerMMR(players.Get(i)) };
-        } else {
-            playerMMR[playerID.ID].newMMR = getPlayerMMR(players.Get(i));
-        }
-    }
-
+    return playerStats;
 }
 
 float RLCSVPlugin::getPlayerMMR(PriWrapper player) {
