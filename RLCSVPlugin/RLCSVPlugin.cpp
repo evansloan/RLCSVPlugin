@@ -10,35 +10,15 @@ void RLCSVPlugin::onLoad() {
     cvarManager->registerCvar("cl_rlcsv_csv_directory", "bakkesmod/data/csv/", "Directory to write CSV files to (use forward slash '/' as separator in path", true, false, (0.0F), false, (0.0F), true);
     cvarManager->getCvar("cl_rlcsv_csv_directory").addOnValueChanged(std::bind(&RLCSVPlugin::logCVarChange, this, std::placeholders::_1, std::placeholders::_2));
 
-    gameWrapper->HookEvent("Function GameEvent_TA.Countdown.BeginState", std::bind(&RLCSVPlugin::startGame, this, std::placeholders::_1));
-    gameWrapper->HookEvent("Function TAGame.GameEvent_Soccar_TA.OnMatchEnded", std::bind(&RLCSVPlugin::endGame, this, std::placeholders::_1));
+    gameWrapper->HookEvent("Function TAGame.GameEvent_Soccar_TA.OnMatchEnded", std::bind(&RLCSVPlugin::onMatchEnded, this, std::placeholders::_1));
 }
 
 
 void RLCSVPlugin::onUnload() {
-    gameWrapper->UnhookEvent("Function GameEvent_TA.Countdown.BeginState");
     gameWrapper->UnhookEvent("Function TAGame.GameEvent_Soccar_TA.OnMatchEnded");
 }
 
-void RLCSVPlugin::startGame(std::string eventName) {
-    cvarManager->log("Game start");
-    if (!gameWrapper->IsInOnlineGame() || gameWrapper->IsInReplay()) {
-        cvarManager->log("Not a valid online game. CSV recording paused");
-        return;
-    }
-
-    ServerWrapper sw = gameWrapper->GetOnlineGame();
-    if (sw.IsNull() && !sw.IsOnlineMultiplayer()) {
-        cvarManager->log("ServerWrapper is null or game is not online multiplayer. CSV cannot be recorded");
-        return;
-    }
-
-    cvarManager->log("CSV recording enabled");
-
-    ArrayWrapper<PriWrapper> players = sw.GetPRIs();
-}
-
-void RLCSVPlugin::endGame(std::string eventName) {
+void RLCSVPlugin::onMatchEnded(std::string eventName) {
     cvarManager->log("Event " + eventName);
 
     ServerWrapper sw = gameWrapper->GetOnlineGame();
@@ -94,6 +74,8 @@ void RLCSVPlugin::writeCSV() {
         f << ss.str();
         ss.str(std::string());
     }
+
+    f.close();
 }
 
 std::map<std::string, Stats> RLCSVPlugin::getPlayerStats(ArrayWrapper<TeamWrapper> teams, ArrayWrapper<PriWrapper> players) {

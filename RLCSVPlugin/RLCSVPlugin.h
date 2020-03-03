@@ -31,6 +31,6 @@ public:
     virtual void onLoad();
     virtual void onUnload();
 
-    void startGame(std::string eventName);
-    void endGame(std::string eventName);
+
+    void onMatchEnded(std::string eventName);
 };
