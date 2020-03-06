@@ -3,10 +3,7 @@
 
 #include "bakkesmod/plugin/bakkesmodplugin.h"
 
-#include <ctime>
 #include <map>
-#include <fstream>
-#include <sstream>
 
 typedef struct {
     int team;

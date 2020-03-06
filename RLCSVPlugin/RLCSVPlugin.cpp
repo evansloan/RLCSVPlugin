@@ -1,16 +1,27 @@
 #include "RLCSVPlugin.h"
 
+#include <ctime>
+#include <direct.h>
+#include <fstream>
+#include <sstream>
+
 BAKKESMOD_PLUGIN(RLCSVPlugin, "RLCSV Plugin", "0.1", 0)
+
+const std::string saveLocation = "bakkesmod/data/RLCSV/";
 
 void RLCSVPlugin::onLoad() {
     std::stringstream ss;
     ss << exports.pluginName << " version: " << exports.pluginVersion;
     cvarManager->log(ss.str());
 
-    cvarManager->registerCvar("cl_rlcsv_csv_directory", "bakkesmod/data/RLCSV/", "Directory to write CSV files to (use forward slash '/' as separator in path", true, false, (0.0F), false, (0.0F), true);
+    cvarManager->registerCvar("cl_rlcsv_csv_directory", saveLocation, "Directory to write CSV files to (use forward slash '/' as separator in path", true, false, (0.0F), false, (0.0F), true);
     cvarManager->getCvar("cl_rlcsv_csv_directory").addOnValueChanged(std::bind(&RLCSVPlugin::logCVarChange, this, std::placeholders::_1, std::placeholders::_2));
 
     gameWrapper->HookEvent("Function TAGame.GameEvent_Soccar_TA.OnMatchEnded", std::bind(&RLCSVPlugin::onMatchEnded, this, std::placeholders::_1));
+
+    if (_mkdir(saveLocation.c_str()) == 0) {
+        cvarManager->log("Save directory created at: " + saveLocation);
+    }
 }
 
 
