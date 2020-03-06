@@ -4,6 +4,7 @@
 #include "bakkesmod/plugin/bakkesmodplugin.h"
 
 #include <map>
+#include <string>
 
 typedef struct {
     int team;
@@ -22,12 +23,11 @@ private:
     void writeCSV();
     std::map<std::string, Stats> getPlayerStats(ArrayWrapper<TeamWrapper> teams, ArrayWrapper<PriWrapper> players);
     float getPlayerMMR(MMRWrapper mw, PriWrapper player);
-    void logCVarChange(std::string oldValue, CVarWrapper cvar);
+    std::string getTimeStamp(bool includeTime);
 
 public:
     virtual void onLoad();
     virtual void onUnload();
-
 
     void onMatchEnded(std::string eventName);
 };
