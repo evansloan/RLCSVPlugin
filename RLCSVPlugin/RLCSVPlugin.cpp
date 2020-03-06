@@ -6,7 +6,7 @@
 #include <iomanip>
 #include <sstream>
 
-BAKKESMOD_PLUGIN(RLCSVPlugin, "RLCSV Plugin", "0.1", 0)
+BAKKESMOD_PLUGIN(RLCSVPlugin, "RLCSV Plugin", "0.2", 0)
 
 const std::string saveLocation = "bakkesmod/data/RLCSV/";
 
