@@ -29,13 +29,6 @@ void RLCSVPlugin::onUnload() {
 
 void RLCSVPlugin::onMatchEnded(std::string eventName) {
     cvarManager->log("Event " + eventName);
-
-    ServerWrapper sw = gameWrapper->GetOnlineGame();
-    if (sw.IsNull()) {
-        cvarManager->log("ServerWrapper is null. CSV cannot be recorded");
-        return;
-    }
-
     writeCSV();
     cvarManager->log("CSV file successfully written");
 }
@@ -62,13 +55,15 @@ void RLCSVPlugin::writeCSV() {
     }
 
     std::string result = myScore > otherScore ? "WIN" : "LOSS";
+    std::string gameMode = sw.GetPlaylist().GetTitle().ToString();
 
-    std::string folderName = saveLocation + getTimeStamp(false) + "/";
-    if (_mkdir(folderName.c_str()) == 0) {
-        cvarManager->log(folderName + " directory created");
-    }
+    std::string dateFolder = saveLocation + getTimeStamp("%Y-%m-%d") + "/";
+    createDirectory(dateFolder);
+    std::string modeFolder = dateFolder + gameMode + "/";
+    createDirectory(modeFolder);
 
-    ss << folderName << getTimeStamp(true) << "_" << result << "_" << myScore << "-" << otherScore << ".csv";
+    ss << modeFolder << getTimeStamp("%Y%m%dT%H%M%S") << "_" << gameMode << "_"
+       << result << "_" << myScore << "-" << otherScore << ".csv";
 
     std::string filename = ss.str();
     cvarManager->log("CSV file directory: " + filename);
@@ -76,7 +71,7 @@ void RLCSVPlugin::writeCSV() {
 
     ss.str(std::string());
 
-    f << "Team,Player,Score,Goals,Assists,Saves,Shots,Team Score,MMR\n";
+    f << "Team,Player,Score,Goals,Assists,Saves,Shots,Damage,Demos,Team Score,MMR\n";
 
     map<std::string, Stats> playerStats = getPlayerStats(teams, sw.GetPRIs());
 
@@ -84,7 +79,8 @@ void RLCSVPlugin::writeCSV() {
         Stats player = pair.second;
         cvarManager->log("Writing player " + player.name);
         ss << player.team << "," << player.name << "," << player.score << "," << player.goals << "," << player.assists << ","
-            << player.saves << "," << player.shots << "," << player.teamScore << "," << player.mmr << "\n";
+           << player.saves << "," << player.shots << "," << player.damage << "," << player.demos << "," << player.teamScore << ","
+           << player.mmr << "\n";
         f << ss.str();
         ss.str(std::string());
     }
@@ -101,17 +97,19 @@ std::map<std::string, Stats> RLCSVPlugin::getPlayerStats(ArrayWrapper<TeamWrappe
     for (int i = 0; i < players.Count(); i++) {
         PriWrapper player = players.Get(i);
         std::string playerID = std::to_string(player.GetUniqueId().ID);
-        int team = player.GetTeamNum2();
+        int team = player.GetTeamNum();
         std::string name = player.GetPlayerName().ToString();
         int score = player.GetMatchScore();
         int goals = player.GetMatchGoals();
         int assists = player.GetMatchAssists();
         int saves = player.GetMatchSaves();
         int shots = player.GetMatchShots();
+        int damage = player.GetMatchBreakoutDamage();
+        int demos = player.GetMatchDemolishes();
         int teamScore = teams.Get(team).GetScore();
         float mmr = getPlayerMMR(mw, player);
 
-        playerStats[playerID] = Stats{ team, name, score, goals, assists, saves, shots, teamScore, mmr };
+        playerStats[playerID] = Stats{ team, name, score, goals, assists, saves, shots, damage, demos, teamScore, mmr };
     }
     return playerStats;
 }
@@ -122,18 +120,18 @@ float RLCSVPlugin::getPlayerMMR(MMRWrapper mw, PriWrapper player) {
     return mw.GetPlayerMMR(playerID, playlist);
 }
 
-std::string RLCSVPlugin::getTimeStamp(bool includeTime) {
+std::string RLCSVPlugin::getTimeStamp(std::string format) {
     const std::time_t now = std::time(nullptr);
-    const std::tm currTimeLocal = *std::localtime(std::addressof(now));
+    const std::tm currTimeLocal = *std::localtime(&now);
 
     std::stringstream ss;
-    std::string format = "%y%m%d";
-
-    if (includeTime) {
-        format += "T%H%M%S";
-    }
-
-    ss << std::put_time(std::addressof(currTimeLocal), format.c_str());
+    ss << std::put_time(&currTimeLocal, format.c_str());
 
     return ss.str();
+}
+
+void RLCSVPlugin::createDirectory(std::string path) {
+    if (_mkdir(path.c_str()) == 0) {
+        cvarManager->log(path + " directory created");
+    }
 }

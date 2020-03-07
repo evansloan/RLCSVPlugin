@@ -14,6 +14,8 @@ typedef struct {
     int assists;
     int saves;
     int shots;
+    int demos;
+    int damage;
     int teamScore;
     float mmr;
 } Stats;
@@ -23,7 +25,8 @@ private:
     void writeCSV();
     std::map<std::string, Stats> getPlayerStats(ArrayWrapper<TeamWrapper> teams, ArrayWrapper<PriWrapper> players);
     float getPlayerMMR(MMRWrapper mw, PriWrapper player);
-    std::string getTimeStamp(bool includeTime);
+    std::string getTimeStamp(std::string format);
+    void createDirectory(std::string path);
 
 public:
     virtual void onLoad();
