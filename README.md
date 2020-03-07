@@ -7,4 +7,4 @@ BakkesMod plugin to save Rocket League match data to CSV files.
 3. Open BakkesMod and click File -> Open BakkesMod folder
 4. Paste RLCSVPlugin.dll into `plugins/`
 5. Append `plugin load rlcsvplugin` to `cfg/plugins.cfg`
-6. After a match, a .csv file will be created in `data/RLCSV/match.csv`
+6. After a match, a .csv file will be created in `data/RLCSV/<date>/<gamemode>/match.csv`
