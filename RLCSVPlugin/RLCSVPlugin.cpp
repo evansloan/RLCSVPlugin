@@ -6,7 +6,7 @@
 #include <iomanip>
 #include <sstream>
 
-BAKKESMOD_PLUGIN(RLCSVPlugin, "RLCSV Plugin", "0.2", 0)
+BAKKESMOD_PLUGIN(RLCSVPlugin, "RLCSV Plugin", "0.3", 0)
 
 const std::string saveLocation = "bakkesmod/data/RLCSV/";
 
@@ -71,7 +71,7 @@ void RLCSVPlugin::writeCSV() {
 
     ss.str(std::string());
 
-    f << "Team,Player,Score,Goals,Assists,Saves,Shots,Damage,Demos,Team Score,MMR\n";
+    f << "Team,Player,Score,Goals,Assists,Saves,Shots,Damage,Team Score,MMR\n";
 
     map<std::string, Stats> playerStats = getPlayerStats(teams, sw.GetPRIs());
 
@@ -79,7 +79,7 @@ void RLCSVPlugin::writeCSV() {
         Stats player = pair.second;
         cvarManager->log("Writing player " + player.name);
         ss << player.team << "," << player.name << "," << player.score << "," << player.goals << "," << player.assists << ","
-           << player.saves << "," << player.shots << "," << player.damage << "," << player.demos << "," << player.teamScore << ","
+           << player.saves << "," << player.shots << "," << player.damage << "," << player.teamScore << ","
            << player.mmr << "\n";
         f << ss.str();
         ss.str(std::string());
@@ -105,11 +105,10 @@ std::map<std::string, Stats> RLCSVPlugin::getPlayerStats(ArrayWrapper<TeamWrappe
         int saves = player.GetMatchSaves();
         int shots = player.GetMatchShots();
         int damage = player.GetMatchBreakoutDamage();
-        int demos = player.GetMatchDemolishes();
         int teamScore = teams.Get(team).GetScore();
         float mmr = getPlayerMMR(mw, player);
 
-        playerStats[playerID] = Stats{ team, name, score, goals, assists, saves, shots, damage, demos, teamScore, mmr };
+        playerStats[playerID] = Stats{ team, name, score, goals, assists, saves, shots, damage, teamScore, mmr };
     }
     return playerStats;
 }

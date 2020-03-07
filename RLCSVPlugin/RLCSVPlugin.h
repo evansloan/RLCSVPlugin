@@ -14,7 +14,6 @@ typedef struct {
     int assists;
     int saves;
     int shots;
-    int demos;
     int damage;
     int teamScore;
     float mmr;
