@@ -15,12 +15,15 @@ typedef struct {
     int saves;
     int shots;
     int damage;
+    int mvp;
     int teamScore;
     float mmr;
 } Stats;
 
 class RLCSVPlugin : public BakkesMod::Plugin::BakkesModPlugin {
 private:
+    const std::string saveLocation = "bakkesmod/data/RLCSV/";
+
     void writeCSV();
     std::map<std::string, Stats> getPlayerStats(ArrayWrapper<TeamWrapper> teams, ArrayWrapper<PriWrapper> players);
     float getPlayerMMR(MMRWrapper mw, PriWrapper player);

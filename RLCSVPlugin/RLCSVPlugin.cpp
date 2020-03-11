@@ -8,8 +8,6 @@
 
 BAKKESMOD_PLUGIN(RLCSVPlugin, "RLCSV Plugin", "0.3", 0)
 
-const std::string saveLocation = "bakkesmod/data/RLCSV/";
-
 void RLCSVPlugin::onLoad() {
     std::stringstream ss;
     ss << exports.pluginName << " version: " << exports.pluginVersion;
@@ -17,9 +15,7 @@ void RLCSVPlugin::onLoad() {
 
     gameWrapper->HookEvent("Function TAGame.GameEvent_Soccar_TA.OnMatchEnded", std::bind(&RLCSVPlugin::onMatchEnded, this, std::placeholders::_1));
 
-    if (_mkdir(saveLocation.c_str()) == 0) {
-        cvarManager->log("Save directory created at: " + saveLocation);
-    }
+    createDirectory(saveLocation);
 }
 
 
@@ -64,14 +60,11 @@ void RLCSVPlugin::writeCSV() {
 
     ss << modeFolder << getTimeStamp("%Y%m%dT%H%M%S") << "_" << gameMode << "_"
        << result << "_" << myScore << "-" << otherScore << ".csv";
-
     std::string filename = ss.str();
-    cvarManager->log("CSV file directory: " + filename);
-    std::ofstream f(filename);
-
     ss.str(std::string());
 
-    f << "Team,Player,Score,Goals,Assists,Saves,Shots,Damage,Team Score,MMR\n";
+    std::ofstream f(filename);
+    f << "Team,Player,Score,Goals,Assists,Saves,Shots,Damage,MVP,Team Score,MMR\n";
 
     map<std::string, Stats> playerStats = getPlayerStats(teams, sw.GetPRIs());
 
@@ -79,7 +72,7 @@ void RLCSVPlugin::writeCSV() {
         Stats player = pair.second;
         cvarManager->log("Writing player " + player.name);
         ss << player.team << "," << player.name << "," << player.score << "," << player.goals << "," << player.assists << ","
-           << player.saves << "," << player.shots << "," << player.damage << "," << player.teamScore << ","
+           << player.saves << "," << player.shots << "," << player.damage << "," << player.mvp << "," << player.teamScore << ","
            << player.mmr << "\n";
         f << ss.str();
         ss.str(std::string());
@@ -105,10 +98,11 @@ std::map<std::string, Stats> RLCSVPlugin::getPlayerStats(ArrayWrapper<TeamWrappe
         int saves = player.GetMatchSaves();
         int shots = player.GetMatchShots();
         int damage = player.GetMatchBreakoutDamage();
+        int mvp = player.GetbMatchMVP();
         int teamScore = teams.Get(team).GetScore();
         float mmr = getPlayerMMR(mw, player);
 
-        playerStats[playerID] = Stats{ team, name, score, goals, assists, saves, shots, damage, teamScore, mmr };
+        playerStats[playerID] = Stats{ team, name, score, goals, assists, saves, shots, damage, mvp, teamScore, mmr };
     }
     return playerStats;
 }
