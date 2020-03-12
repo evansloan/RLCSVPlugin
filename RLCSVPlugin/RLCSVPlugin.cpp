@@ -6,7 +6,7 @@
 #include <iomanip>
 #include <sstream>
 
-BAKKESMOD_PLUGIN(RLCSVPlugin, "RLCSV Plugin", "0.3", 0)
+BAKKESMOD_PLUGIN(RLCSVPlugin, "RLCSV Plugin", "0.4", 0)
 
 void RLCSVPlugin::onLoad() {
     std::stringstream ss;
