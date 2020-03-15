@@ -52,6 +52,9 @@ void RLCSVPlugin::writeCSV() {
 
     std::string result = myScore > otherScore ? "WIN" : "LOSS";
     std::string gameMode = sw.GetPlaylist().GetTitle().ToString();
+    bool isRanked = sw.GetPlaylist().GetbRanked();
+
+    gameMode = isRanked ? gameMode + "_Ranked" : gameMode;
 
     std::string dateFolder = saveLocation + getTimeStamp("%Y-%m-%d") + "/";
     createDirectory(dateFolder);
