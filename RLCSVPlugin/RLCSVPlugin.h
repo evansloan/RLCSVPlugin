@@ -22,8 +22,6 @@ typedef struct {
 
 class RLCSVPlugin : public BakkesMod::Plugin::BakkesModPlugin {
 private:
-    const std::string saveLocation = "bakkesmod/data/RLCSV/";
-
     void writeCSV();
     std::map<std::string, Stats> getPlayerStats(ArrayWrapper<TeamWrapper> teams, ArrayWrapper<PriWrapper> players);
     float getPlayerMMR(MMRWrapper mw, PriWrapper player);

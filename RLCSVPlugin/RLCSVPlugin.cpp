@@ -6,16 +6,19 @@
 #include <iomanip>
 #include <sstream>
 
-BAKKESMOD_PLUGIN(RLCSVPlugin, "RLCSV Plugin", "0.4", 0)
+BAKKESMOD_PLUGIN(RLCSVPlugin, "RLCSV Plugin", "0.5", 0)
 
 void RLCSVPlugin::onLoad() {
     std::stringstream ss;
     ss << exports.pluginName << " version: " << exports.pluginVersion;
     cvarManager->log(ss.str());
 
+    cvarManager->registerCvar("rlcsv_save_path", "bakkesmod/data/RLCSV/", "Location to save CSV files. Use \"/\" as path seperator", true, false, 0, false, 0, true);
+    cvarManager->registerCvar("rlcsv_save_structure", "0", "Save CSV files in folders based on date and game mode", true, true, 0, true, 1);
+
     gameWrapper->HookEvent("Function TAGame.GameEvent_Soccar_TA.OnMatchEnded", std::bind(&RLCSVPlugin::onMatchEnded, this, std::placeholders::_1));
 
-    createDirectory(saveLocation);
+    createDirectory(cvarManager->getCvar("rlcsv_save_path").getStringValue());
 }
 
 
@@ -53,15 +56,20 @@ void RLCSVPlugin::writeCSV() {
     std::string result = myScore > otherScore ? "WIN" : "LOSS";
     std::string gameMode = sw.GetPlaylist().GetTitle().ToString();
     bool isRanked = sw.GetPlaylist().GetbRanked();
-
     gameMode = isRanked ? gameMode + "_Ranked" : gameMode;
 
-    std::string dateFolder = saveLocation + getTimeStamp("%Y-%m-%d") + "/";
-    createDirectory(dateFolder);
-    std::string modeFolder = dateFolder + gameMode + "/";
-    createDirectory(modeFolder);
+    std::string baseFolder = cvarManager->getCvar("rlcsv_save_path").getStringValue();
+    ss << baseFolder;
 
-    ss << modeFolder << getTimeStamp("%Y%m%dT%H%M%S") << "_" << gameMode << "_"
+    if (cvarManager->getCvar("rlcsv_save_structure").getBoolValue()) {
+        std::string dateFolder = getTimeStamp("%Y-%m-%d") + "/";
+        createDirectory(baseFolder + dateFolder);
+        std::string modeFolder = dateFolder + gameMode + "/";
+        createDirectory(baseFolder + modeFolder);
+        ss << modeFolder;
+    }
+
+    ss << getTimeStamp("%Y%m%dT%H%M%S") << "_" << gameMode << "_"
        << result << "_" << myScore << "-" << otherScore << ".csv";
     std::string filename = ss.str();
     ss.str(std::string());
