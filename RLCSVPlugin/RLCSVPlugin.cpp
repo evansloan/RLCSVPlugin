@@ -27,7 +27,6 @@ void RLCSVPlugin::onUnload() {
 }
 
 void RLCSVPlugin::onMatchEnded(std::string eventName) {
-    cvarManager->log("Event " + eventName);
     writeCSV();
     cvarManager->log("CSV file successfully written");
 }
@@ -53,6 +52,7 @@ void RLCSVPlugin::writeCSV() {
         otherScore = teams.Get(0).GetScore();
     }
 
+    std::string timestamp = getTimeStamp("%Y%m%dT%H%M%S");
     std::string result = myScore > otherScore ? "WIN" : "LOSS";
     std::string gameMode = sw.GetPlaylist().GetTitle().ToString();
     bool isRanked = sw.GetPlaylist().GetbRanked();
@@ -69,22 +69,21 @@ void RLCSVPlugin::writeCSV() {
         ss << modeFolder;
     }
 
-    ss << getTimeStamp("%Y%m%dT%H%M%S") << "_" << gameMode << "_"
+    ss << timestamp << "_" << gameMode << "_"
        << result << "_" << myScore << "-" << otherScore << ".csv";
     std::string filename = ss.str();
     ss.str(std::string());
 
     std::ofstream f(filename);
-    f << "Team,Player,Score,Goals,Assists,Saves,Shots,Damage,MVP,Team Score,MMR\n";
+    f << "Timestamp,Game mode,Team,Player,Score,Goals,Assists,Saves,Shots,Damage,MVP,Team Score,Win,MMR\n";
 
     map<std::string, Stats> playerStats = getPlayerStats(teams, sw.GetPRIs());
 
     for (auto const &pair : playerStats) {
         Stats player = pair.second;
-        cvarManager->log("Writing player " + player.name);
-        ss << player.team << "," << player.name << "," << player.score << "," << player.goals << "," << player.assists << ","
-           << player.saves << "," << player.shots << "," << player.damage << "," << player.mvp << "," << player.teamScore << ","
-           << player.mmr << "\n";
+        ss << timestamp << gameMode << player.team << "," << player.name << "," << player.score << "," << player.goals << ","
+           << player.assists << "," << player.saves << "," << player.shots << "," << player.damage << "," << player.mvp << ","
+           << player.teamScore << "," << (player.team && sw.GetWinningTeam().GetTeamNum()) << "," << player.mmr << "\n";
         f << ss.str();
         ss.str(std::string());
     }
@@ -93,8 +92,6 @@ void RLCSVPlugin::writeCSV() {
 }
 
 std::map<std::string, Stats> RLCSVPlugin::getPlayerStats(ArrayWrapper<TeamWrapper> teams, ArrayWrapper<PriWrapper> players) {
-    cvarManager->log("Getting player stats");
-
     MMRWrapper mw = gameWrapper->GetMMRWrapper();
     std::map<std::string, Stats> playerStats;
 
