@@ -81,9 +81,9 @@ void RLCSVPlugin::writeCSV() {
 
     for (auto const &pair : playerStats) {
         Stats player = pair.second;
-        ss << timestamp << gameMode << player.team << "," << player.name << "," << player.score << "," << player.goals << ","
+        ss << timestamp << "," << gameMode << "," << player.team << "," << player.name << "," << player.score << "," << player.goals << ","
            << player.assists << "," << player.saves << "," << player.shots << "," << player.damage << "," << player.mvp << ","
-           << player.teamScore << "," << (player.team && sw.GetWinningTeam().GetTeamNum()) << "," << player.mmr << "\n";
+           << player.teamScore << "," << (player.team == sw.GetWinningTeam().GetTeamNum()) << "," << player.mmr << "\n";
         f << ss.str();
         ss.str(std::string());
     }
