@@ -2,6 +2,9 @@
 
 RLCSVPlugin is a BakkesMod plugin that saves Rocket League scoreboard stats for all players to CSV files on the conclusion of an online match.
 
+## Installation
+* Install the plugin through [bakkesplugins.com](https://bakkesplugins.com/plugins/view/94)
+
 ## Settings
 * With Rocket League open press F2 -> Plugins -> RLCSVPlugin
 * Save directory: The location where you would like your CSV files to be saved
