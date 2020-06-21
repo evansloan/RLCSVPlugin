@@ -6,7 +6,7 @@
 #include <iomanip>
 #include <sstream>
 
-BAKKESMOD_PLUGIN(RLCSVPlugin, "RLCSV Plugin", "0.5", 0)
+BAKKESMOD_PLUGIN(RLCSVPlugin, "RLCSV Plugin", "0.5.1", 0)
 
 void RLCSVPlugin::onLoad() {
     std::stringstream ss;
@@ -77,7 +77,7 @@ void RLCSVPlugin::writeCSV() {
     std::ofstream f(filename);
     f << "Timestamp,Game mode,Team,Player,Score,Goals,Assists,Saves,Shots,Damage,MVP,Team Score,Win,MMR\n";
 
-    map<std::string, Stats> playerStats = getPlayerStats(teams, sw.GetPRIs());
+    std::map<std::string, Stats> playerStats = getPlayerStats(teams, sw.GetPRIs());
 
     for (auto const &pair : playerStats) {
         Stats player = pair.second;

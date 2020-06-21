@@ -1,7 +1,7 @@
 #pragma once
-#pragma comment(lib, "BakkesMod.lib")
+#pragma comment(lib, "pluginsdk.lib")
 
-#include "bakkesmod/plugin/bakkesmodplugin.h"
+#include <bakkesmod/plugin/bakkesmodplugin.h>
 
 #include <map>
 #include <string>
